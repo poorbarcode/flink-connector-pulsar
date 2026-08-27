@@ -42,9 +42,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.concurrent.CompletableFuture.runAsync;
 import static org.apache.flink.core.execution.CheckpointingMode.EXACTLY_ONCE;
-import static org.apache.flink.core.testutils.FlinkAssertions.assertThatFuture;
 
 /**
  * Unit test class for {@link PulsarSource}. Used for {@link SubscriptionType#Exclusive}
