@@ -30,9 +30,9 @@ import org.apache.flink.connector.testframe.junit.annotations.TestExternalSystem
 import org.apache.flink.connector.testframe.junit.annotations.TestSemantics;
 import org.apache.flink.connector.testframe.testsuites.SourceTestSuiteBase;
 import org.apache.flink.core.execution.CheckpointingMode;
-import org.apache.flink.util.CloseableIterator;
 import org.apache.flink.tests.util.pulsar.common.FlinkContainerUtils;
 import org.apache.flink.tests.util.pulsar.common.PulsarContainerTestEnvironment;
+import org.apache.flink.util.CloseableIterator;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
