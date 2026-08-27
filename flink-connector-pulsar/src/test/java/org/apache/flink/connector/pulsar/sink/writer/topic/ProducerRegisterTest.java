@@ -113,7 +113,9 @@ class ProducerRegisterTest extends PulsarTestSuiteBase {
                         sinkConfiguration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
 
         long message = ThreadLocalRandom.current().nextLong();
-        TypedMessageBuilderImpl<Object> builder = (TypedMessageBuilderImpl<Object>) register.createMessageBuilder(topic, Schema.BYTES);
+        TypedMessageBuilderImpl<Object> builder =
+                (TypedMessageBuilderImpl<Object>)
+                        register.createMessageBuilder(topic, Schema.BYTES);
         builder.value(Schema.INT64.encode(message));
         assertThatThrownBy(() -> builder.getMessage())
                 .isInstanceOf(SchemaSerializationException.class);
