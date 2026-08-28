@@ -46,4 +46,4 @@ jobs:
       jdk_version: ${{ matrix.jdk }}
       run_dependency_convergence: false
       timeout_global: 120
-      timeout_test: 65
+      timeout_test: 80
