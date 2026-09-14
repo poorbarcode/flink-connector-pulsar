@@ -58,6 +58,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -93,6 +94,27 @@ import static org.apache.pulsar.client.api.KeySharedPolicy.stickyHashRange;
 public class PulsarPartitionSplitReader
         implements SplitReader<Message<byte[]>, PulsarPartitionSplit> {
     private static final Logger LOG = LoggerFactory.getLogger(PulsarPartitionSplitReader.class);
+    private static final Comparator<MessageIdAdv> MESSAGE_ID_COMPARATOR =
+            (messageId1, messageId2) -> {
+                int ledgerComparison =
+                        Long.compare(messageId1.getLedgerId(), messageId2.getLedgerId());
+                if (ledgerComparison != 0) {
+                    return ledgerComparison;
+                }
+
+                int entryComparison =
+                        Long.compare(messageId1.getEntryId(), messageId2.getEntryId());
+                if (entryComparison != 0) {
+                    return entryComparison;
+                }
+
+                if (messageId1 instanceof BatchMessageIdImpl
+                        && messageId2 instanceof BatchMessageIdImpl) {
+                    return Integer.compare(messageId1.getBatchIndex(), messageId2.getBatchIndex());
+                }
+
+                return 0;
+            };
 
     private final PulsarClient pulsarClient;
     private final SourceConfiguration sourceConfiguration;
@@ -178,14 +200,9 @@ public class PulsarPartitionSplitReader
                 // reconnects, it may receive repeated messages. We use the following two mechanism
                 // to solve the
                 // repeated receiving messages issue.
-                if (latestMessageIdInTheCurrentFetch != null
-                        && compareMessageIds(latestMessageIdInTheCurrentFetch, msgId) >= 0) {
-                    continue;
-                }
-                if (registeredSplit.getLatestConsumedId() != null
-                        && compareMessageIds(
-                                        (MessageIdAdv) registeredSplit.getLatestConsumedId(), msgId)
-                                >= 0) {
+                if (isAtOrAfter(latestMessageIdInTheCurrentFetch, msgId)
+                        || isAtOrAfter(
+                                (MessageIdAdv) registeredSplit.getLatestConsumedId(), msgId)) {
                     continue;
                 }
                 latestMessageIdInTheCurrentFetch = msgId;
@@ -213,26 +230,10 @@ public class PulsarPartitionSplitReader
         return builder.build();
     }
 
-    private int compareMessageIds(MessageIdAdv messageId1, MessageIdAdv messageId2) {
-        if (messageId1.getLedgerId() > messageId2.getLedgerId()) {
-            return 1;
-        }
-        if (messageId1.getLedgerId() < messageId2.getLedgerId()) {
-            return -1;
-        }
-        if (messageId1.getEntryId() > messageId2.getEntryId()) {
-            return 1;
-        }
-        if (messageId1.getEntryId() < messageId2.getEntryId()) {
-            return -1;
-        }
-        if (messageId2 instanceof BatchMessageIdImpl && messageId1 instanceof BatchMessageIdImpl) {
-            BatchMessageIdImpl batchMessageId1 = (BatchMessageIdImpl) messageId1;
-            BatchMessageIdImpl batchMessageId2 = (BatchMessageIdImpl) messageId2;
-            return batchMessageId1.getBatchIndex() - batchMessageId2.getBatchIndex();
-        } else {
-            return 0;
-        }
+    /** Returns whether the previous message ID is at or after the given message ID. */
+    private static boolean isAtOrAfter(MessageIdAdv previousMessageId, MessageIdAdv messageId) {
+        return previousMessageId != null
+                && MESSAGE_ID_COMPARATOR.compare(previousMessageId, messageId) >= 0;
     }
 
     @Override
